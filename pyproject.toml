@@ -1,0 +1,25 @@
+[project]
+name = "football-scraping"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.1",
+    "asyncpg>=0.32.0",
+    "celery>=5.6.3",
+    "deep-translator>=1.11.4",
+    "dependency-injector>=4.49.1",
+    "fastapi[standard]>=0.162.0",
+    "insightface>=2.1",
+    "numpy>=2.5.4",
+    "onnxruntime>=1.31.1",
+    "opencv-python-headless>=5.0.0.93",
+    "packaging>=26.3",
+    "playwright>=1.64.1",
+    "pydantic-settings>=2.16.2",
+    "redis>=8.1.0",
+    "requests>=2.34.2",
+    "sqlmodel>=0.0.48",
+    "yt-dlp>=2026.10.26",
+]

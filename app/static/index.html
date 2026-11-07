@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fabrizio Romano posts</title>
+<style>
+  :root {
+    --bg: #eef3ee; --surface: #ffffff; --ink: #14231a; --muted: #5d6f63;
+    --line: #d3ddd5; --pitch: #1f6b3a; --chalk: #f7faf7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1a13; --surface: #17251c; --ink: #e8f1ea; --muted: #8fa596; --line: #27392d; --pitch: #4fbf78; --chalk: #122017; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 "Segoe UI", system-ui, sans-serif; }
+  header { padding: 28px 20px 8px; max-width: 1100px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: baseline; justify-content: space-between; }
+  h1 { margin: 0; font: 700 1.9rem/1.1 Georgia, "Times New Roman", serif; letter-spacing: -.01em; }
+  #count { color: var(--muted); font-size: .95rem; }
+  .bar { max-width: 1100px; margin: 0 auto; padding: 8px 20px 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .bar button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 14px; border-radius: 999px; font: inherit; font-size: .9rem; cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--pitch); border-color: var(--pitch); color: #fff; }
+  .bar button:focus-visible, .nav:focus-visible, #more:focus-visible { outline: 3px solid var(--pitch); outline-offset: 2px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 20px; }
+  article { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .media { position: relative; aspect-ratio: 4/5; background: #000; }
+  .media img, .media video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,.65); color: #fff; font-size: .8rem; padding: 3px 9px; border-radius: 999px; }
+  .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; font-size: 1.1rem; cursor: pointer; }
+  .prev { left: 8px; } .next { right: 8px; }
+  .dots { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; color: #fff; font-size: .8rem; text-shadow: 0 1px 3px #000; }
+  .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .body h2 { margin: 0; font: 700 1.05rem/1.3 Georgia, serif; }
+  .body p { margin: 0; color: var(--muted); font-size: .92rem; white-space: pre-line; }
+  .body p.clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: .82rem; color: var(--muted); }
+  .meta a { color: var(--pitch); text-decoration: none; font-weight: 600; }
+  .meta a:hover { text-decoration: underline; }
+  .toggle { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--pitch); font: inherit; font-size: .85rem; cursor: pointer; }
+  #status { max-width: 1100px; margin: 0 auto; padding: 40px 20px; text-align: center; color: var(--muted); }
+  #more { display: block; margin: 0 auto 48px; padding: 10px 24px; border-radius: 999px; border: 1px solid var(--pitch); background: none; color: var(--pitch); font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fabrizio Romano posts</h1>
+  <span id="count"></span>
+  <form id="apiForm" style="display:flex;gap:6px;width:100%">
+    <input id="apiBase" aria-label="API address" style="flex:1;max-width:340px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font:inherit;font-size:.9rem">
+    <button style="border:1px solid var(--pitch);background:var(--pitch);color:#fff;padding:7px 14px;border-radius:999px;font:inherit;font-size:.9rem;cursor:pointer">Connect</button>
+  </form>
+</header>
+<div class="bar" role="group" aria-label="Filter">
+  <button data-f="all" aria-pressed="true">All</button>
+  <button data-f="video" aria-pressed="false">Reels</button>
+  <button data-f="gallery" aria-pressed="false">Galleries</button>
+  <button data-f="image" aria-pressed="false">Photos</button>
+</div>
+<div id="status">Loading posts…</div>
+<main id="grid" hidden></main>
+<button id="more" hidden>Load more</button>
+
+<script>
+const DEFAULT_BASE = "http://localhost:8000";
+const PAGE = 20;
+let offset = 0, filter = "all", posts = [];
+
+function getBase() {
+  let b = DEFAULT_BASE;
+  try { b = localStorage.getItem("apiBase") || DEFAULT_BASE; } catch (e) {}
+  return b.replace(/\/+$/, "");
+}
+let BASE = getBase();
+
+const toUrl = p => {
+  if (!p) return null;
+  const s = p.replace(/\\/g, "/");
+  const m = s.match(/(?:^|\/)(media\/.*)$/);   // keep everything from "media/" on, even for absolute paths
+  return BASE + "/" + (m ? m[1] : s.replace(/^\/+/, ""));
+};
+
+const $ = s => document.querySelector(s);
+const grid = $("#grid"), status = $("#status"), more = $("#more");
+
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  kids.forEach(c => n.append(c));
+  return n;
+}
+
+function card(p) {
+  const vidList = p.video_paths && p.video_paths.length ? p.video_paths : (p.video_path ? [p.video_path] : []);
+  // a post with videos shows only its videos; saved images are just the cover, not slides
+  const imgs = vidList.length ? [] : (p.image_paths || []).map(toUrl);
+  const poster = toUrl(p.thumbnail_path);
+  const slides = [
+    ...imgs.map(src => ({ video: false, src })),
+    ...vidList.map(v => ({ video: true, src: toUrl(v) })),
+  ];
+  const type = p.media_type || (slides.length > 1 ? "gallery" : slides[0]?.video ? "video" : "image");
+  const media = el("div", { class: "media" });
+
+  if (slides.length) {
+    let i = 0;
+    const holder = el("div", { style: "width:100%;height:100%" });
+    const dots = el("div", { class: "dots" });
+
+    const show = () => {
+      const s = slides[i];
+      let node;
+      if (s.video && i === 0) {
+        // first slide: show the saved image, play on click
+        node = el("video", { src: s.src, poster: poster || "", controls: "", preload: "none", playsinline: "" });
+      } else if (s.video) {
+        // other slides: no thumbnail, start playing right away
+        node = el("video", { src: s.src, controls: "", playsinline: "", loop: "" });
+        node.muted = false;                 // browsers only allow autoplay when muted
+        node.play().catch(() => {});
+      } else {
+        node = el("img", { src: s.src, alt: p.title || p.shortcode, loading: "lazy" });
+      }
+      holder.replaceChildren(node);        // the previous video is removed, so it stops
+      dots.textContent = `${i + 1} / ${slides.length}`;
+    };
+    const go = d => { i = (i + d + slides.length) % slides.length; show(); };
+    show();
+    media.append(holder);
+
+    if (slides.length > 1) {
+      media.append(
+        el("button", { class: "nav prev", "aria-label": "Previous", onclick: () => go(-1) }, "‹"),
+        el("button", { class: "nav next", "aria-label": "Next", onclick: () => go(1) }, "›"),
+        dots
+      );
+    }
+    media.append(el("span", { class: "badge" }, type === "video" ? "Reel" : type === "gallery" ? "Gallery" : "Photo"));
+  } else if (poster) {
+    media.append(el("img", { src: poster, alt: "", loading: "lazy" }));
+  }
+
+  const body = el("div", { class: "body" });
+  if (p.title) body.append(el("h2", {}, p.title));
+  if (p.caption) {
+    const c = el("p", { class: "clamp" }, p.caption);
+    body.append(c);
+    if (p.caption.length > 160) {
+      const t = el("button", { class: "toggle" }, "Show more");
+      t.onclick = () => { const open = c.classList.toggle("clamp"); t.textContent = open ? "Show more" : "Show less"; };
+      body.append(t);
+    }
+  }
+  if (!p.title && !p.caption) body.append(el("p", {}, "No caption"));
+
+  const date = p.posted_at ? new Date(p.posted_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
+  body.append(el("div", { class: "meta" },
+    el("span", {}, date),
+    el("a", { href: p.url, target: "_blank", rel: "noopener" }, "Open on Instagram")
+  ));
+  return el("article", { "data-type": type }, media, body);
+}
+
+function render() {
+  grid.replaceChildren();
+  const shown = posts.filter(p => filter === "all" || (p.media_type || "video") === filter);
+  shown.forEach(p => grid.append(card(p)));
+  grid.hidden = !shown.length;
+  status.hidden = !!shown.length;
+  if (!shown.length) status.textContent = "No posts match this filter yet.";
+  $("#count").textContent = `${posts.length} saved`;
+}
+
+async function load() {
+  more.disabled = true;
+  try {
+    const r = await fetch(`${BASE}/api/posts?limit=${PAGE}&offset=${offset}`);
+    if (!r.ok) throw new Error(r.status);
+    const page = await r.json();
+    posts = posts.concat(page);
+    offset += page.length;
+    more.hidden = page.length < PAGE;
+    render();
+  } catch (e) {
+    status.hidden = false;
+    grid.hidden = true;
+    status.textContent = `Could not reach ${BASE}/api/posts. Check that the API is running and that this page's address is in CORS_ORIGINS.`;
+  }
+  more.disabled = false;
+}
+
+$("#apiBase").value = BASE;
+$("#apiForm").addEventListener("submit", e => {
+  e.preventDefault();
+  BASE = $("#apiBase").value.trim().replace(/\/+$/, "") || DEFAULT_BASE;
+  try { localStorage.setItem("apiBase", BASE); } catch (err) {}
+  posts = []; offset = 0; grid.replaceChildren();
+  status.hidden = false; status.textContent = "Loading posts…";
+  load();
+});
+
+document.querySelectorAll(".bar button").forEach(b => b.onclick = () => {
+  filter = b.dataset.f;
+  document.querySelectorAll(".bar button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  render();
+});
+more.onclick = load;
+load();
+</script>
+</body>
+</html>
