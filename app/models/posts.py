@@ -27,6 +27,12 @@ class Post(SQLModel, table=True):
     media_type: str | None = Field(default=None)           # video | image | gallery
     image_paths: list[str] | None = Field(default=None, sa_column=Column(JSON))
     video_paths: list[str] | None = Field(default=None, sa_column=Column(JSON))
+
+    slides: list[dict] | None = Field(default=None, sa_column=Column(JSON))
+
+    title_tk: str | None = None
+    caption_tk: str | None = Field(default=None, sa_column=Column(Text))
+    tk_attempts: int = Field(default=0, sa_column_kwargs={"server_default": "0"})
     
     posted_at: datetime | None = Field(default=None, sa_column=Column(DateTime(timezone=True)))
     created_at: datetime = Field(default_factory=utcnow, sa_column=Column(DateTime(timezone=True)))

@@ -4,6 +4,7 @@ from app.core.config import get_settings
 from app.core.database import Database
 from app.repositories.post_repository import PostRepository
 from app.services.post_service import PostService
+from app.services.translation_service import TranslationService
 
 
 settings = get_settings()
@@ -33,3 +34,4 @@ class Container(containers.DeclarativeContainer):
         PostService,
         post_repository=post_repository,
     )
+    translation_service = providers.Factory(TranslationService)

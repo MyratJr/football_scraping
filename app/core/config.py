@@ -16,11 +16,17 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://127.0.0.1:6380/0"
 
     # IG_PROFILE: str = "fabriziorom"
-    # IG_PROFILE: str = "championsleague"
-    IG_PROFILE: str = "433"
+    IG_PROFILE: str = "championsleague"
+    # IG_PROFILE: str = "433"
+    # IG_PROFILE: str = "laliga"
+
     IG_COOKIES_TXT: str = "secrets/instagram_cookies.txt"        # for yt-dlp
     IG_STORAGE_STATE: str = "secrets/instagram_state.json"       # for playwright
     MEDIA_DIR: str = "media"
+    LOGO_PATH: str = "media/logo.png"
+    LOGO_WIDTH_PCT: float = 18.0    # logo width as a % of the image width
+    LOGO_MARGIN_PCT: float = 0    # distance from the top-left corner, as a % of the image width    # distance from the top-left corner
+
     CORS_ORIGINS: str = "http://localhost:3000"
 
     FACE_FILTER_ENABLED: bool = True

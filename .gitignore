@@ -9,5 +9,6 @@ wheels/
 # Virtual environments
 .venv
 
-media
-models_cache
+media/
+models_cache/
+secrets/

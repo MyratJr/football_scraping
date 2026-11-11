@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from typing import Any
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import select, update
 
@@ -60,3 +60,20 @@ class PostRepository(Repository):
                 .offset(offset)
             )
             return list(res.all())
+
+    async def list_untranslated(self, limit: int = 5) -> list[tuple[str, str | None, str | None]]:
+        async with self._session_factory() as session:
+            res = await session.exec(
+                select(Post.shortcode, Post.title, Post.caption)
+                .where(
+                    Post.status == "done",
+                    Post.tk_attempts < 3,
+                    or_(
+                        and_(Post.title.is_not(None), Post.title_tk.is_(None)),
+                        and_(Post.caption.is_not(None), Post.caption_tk.is_(None)),
+                    ),
+                )
+                .order_by(Post.id.desc())
+                .limit(limit)
+            )
+            return [(r[0], r[1], r[2]) for r in res.all()]

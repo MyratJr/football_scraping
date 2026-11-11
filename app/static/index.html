@@ -95,13 +95,18 @@ function el(tag, attrs = {}, ...kids) {
 
 function card(p) {
   const vidList = p.video_paths && p.video_paths.length ? p.video_paths : (p.video_path ? [p.video_path] : []);
+
   // a post with videos shows only its videos; saved images are just the cover, not slides
   const imgs = vidList.length ? [] : (p.image_paths || []).map(toUrl);
   const poster = toUrl(p.thumbnail_path);
-  const slides = [
-    ...imgs.map(src => ({ video: false, src })),
-    ...vidList.map(v => ({ video: true, src: toUrl(v) })),
-  ];
+
+  const slides = (p.slides && p.slides.length)
+    ? p.slides.map(s => ({ video: s.type === "video", src: toUrl(s.path) }))       // new posts: real order
+    : [
+        // older posts without slide data: images, unless the post has videos
+        ...(vidList.length ? [] : (p.image_paths || []).map(toUrl)).map(src => ({ video: false, src })),
+        ...vidList.map(v => ({ video: true, src: toUrl(v) })),
+      ];
   const type = p.media_type || (slides.length > 1 ? "gallery" : slides[0]?.video ? "video" : "image");
   const media = el("div", { class: "media" });
 
@@ -147,12 +152,12 @@ function card(p) {
   if (p.title) body.append(el("h2", {}, p.title));
   if (p.caption) {
     const c = el("p", { class: "clamp" }, p.caption);
-    body.append(c);
-    if (p.caption.length > 160) {
-      const t = el("button", { class: "toggle" }, "Show more");
-      t.onclick = () => { const open = c.classList.toggle("clamp"); t.textContent = open ? "Show more" : "Show less"; };
-      body.append(t);
-    }
+    const t = el("button", { class: "toggle", hidden: "" }, "Show more");  // shown by checkClamps() only if text is cut
+    t.onclick = () => {
+      const clamped = c.classList.toggle("clamp");
+      t.textContent = clamped ? "Show more" : "Show less";
+    };
+    body.append(c, t);
   }
   if (!p.title && !p.caption) body.append(el("p", {}, "No caption"));
 
@@ -171,8 +176,18 @@ function render() {
   grid.hidden = !shown.length;
   status.hidden = !!shown.length;
   if (!shown.length) status.textContent = "No posts match this filter yet.";
+  else checkClamps();
   $("#count").textContent = `${posts.length} saved`;
 }
+
+// show "Show more" only where the text is really cut off
+function checkClamps() {
+  grid.querySelectorAll("p.clamp").forEach(p => {
+    const t = p.nextElementSibling;
+    if (t && t.classList.contains("toggle")) t.hidden = p.scrollHeight <= p.clientHeight + 1;
+  });
+}
+window.addEventListener("resize", checkClamps);
 
 async function load() {
   more.disabled = true;

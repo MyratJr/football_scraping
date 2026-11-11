@@ -23,8 +23,11 @@ class PostService:
             status="done",
             title=info.get("title"),
             caption=info.get("description"),
+            title_tk=info.get("title_tk"),
+            caption_tk=info.get("caption_tk"),
             video_path=info.get("video_path"),
             thumbnail_path=info.get("thumbnail_path"),
+            slides=info.get("slides"),
             image_paths=info.get("image_paths"),
             video_paths=info.get("video_paths"),
             media_type=info.get("media_type"),
@@ -44,3 +47,12 @@ class PostService:
 
     async def list(self, limit: int, offset: int) -> list[Post]:
         return await self._repo.list_posts(limit, offset)
+
+    async def list_untranslated(self, limit: int = 5) -> list[tuple[str, str | None, str | None]]:
+        return await self._repo.list_untranslated(limit)
+
+    async def save_translation(self, shortcode: str, title_tk: str | None, caption_tk: str | None) -> None:
+        await self._repo.update_by_shortcode(shortcode, title_tk=title_tk, caption_tk=caption_tk)
+
+    async def mark_translation_failed(self, shortcode: str) -> None:
+        await self._repo.update_by_shortcode(shortcode, tk_attempts=Post.tk_attempts + 1)

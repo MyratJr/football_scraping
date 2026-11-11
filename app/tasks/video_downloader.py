@@ -29,6 +29,7 @@ def _run(url: str, thumbs: bool) -> tuple[dict, list[str]]:
         },
         "writethumbnail": thumbs,
         "cookiefile": settings.IG_COOKIES_TXT,
+        "ignoreerrors": True,
         "quiet": True,
         "noprogress": True,
         "retries": 3,
@@ -68,3 +69,5 @@ def download_post(shortcode: str, url: str) -> dict:
     """Reel: same return shape as before, plus video_paths."""
     v = download_videos(url, thumbs=True)
     return {**v, "video_path": v["video_paths"][0] if v["video_paths"] else None}
+
+
